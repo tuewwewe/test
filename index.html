@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>标签全链路 · 默认样式（间隙纸）+ 连续纸样式</title>
+<style>
+  :root{
+    --accent:#7C6CFF;
+    --accent-soft:#F0EDFF;
+    --warn:#E5484D;
+    --ink:#1B1B1F;
+    --ink-2:#6E6E76;
+    --ink-3:#8F8F98;
+    --page:#F4F4F6;
+    --canvas:#E9E9EC;
+    --line:#EFEFF2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;
+    background:var(--canvas);min-height:100vh;
+    display:flex;align-items:flex-start;justify-content:center;
+    gap:40px;padding:40px 24px;color:var(--ink);
+  }
+
+  /* ============ 手机框 ============ */
+  .phone{
+    width:375px;height:812px;background:var(--page);
+    border-radius:40px;box-shadow:0 24px 60px rgba(20,20,30,.18),0 0 0 10px #17171a;
+    overflow:hidden;position:relative;flex-shrink:0;
+  }
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--page)}
+  .screen.active{display:flex}
+  .statusbar{height:44px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 24px;font-size:14px;font-weight:600;flex-shrink:0}
+  .statusbar .icons{letter-spacing:2px;font-size:12px}
+
+  /* ---------- 屏1：标签设置 ---------- */
+  .s1-nav{display:flex;align-items:center;justify-content:space-between;padding:6px 20px 2px}
+  .s1-close{font-size:22px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:22px}
+  .btn-confirm{background:var(--ink);color:#fff;border:none;border-radius:20px;
+    padding:9px 22px;font-size:14px;font-weight:600;cursor:pointer}
+  .s1-title{font-size:24px;font-weight:700;padding:10px 20px 14px}
+  .s1-scroll{flex:1;overflow-y:auto;padding:0 14px 24px;scrollbar-width:none}
+  .s1-scroll::-webkit-scrollbar{display:none}
+  .card{background:#fff;border-radius:14px;padding:4px 16px;margin-bottom:10px}
+  .name-field{padding:14px 0 16px}
+  .name-field input{margin-top:10px;width:100%;border:none;background:var(--page);
+    border-radius:10px;padding:12px 14px;font-size:14px;outline:none}
+  .name-field input::placeholder{color:var(--ink-3)}
+  .field-label{font-size:14px;font-weight:500}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;cursor:pointer;position:relative}
+  .row + .row{border-top:1px solid var(--line)}
+  .row .rv{font-size:14px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+  .row .rv.acc{color:var(--accent);font-weight:600}
+  .row.flash{animation:fieldFlash 1.4s ease-out;border-radius:10px}
+  @keyframes fieldFlash{0%{background:var(--accent-soft)}100%{background:transparent}}
+  .caret{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid var(--ink-3)}
+  /* 行内数字输入（设置页 · 调起系统键盘） */
+  .row-input{
+    width:90px;border:none;background:transparent;text-align:right;
+    font-size:14px;color:var(--ink-2);outline:none;font-family:inherit;
+  }
+  .row-input:focus{color:var(--accent);font-weight:700}
+  /* toast */
+  .toast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%) translateY(12px);
+    background:rgba(27,27,31,.92);color:#fff;font-size:13px;padding:10px 18px;
+    border-radius:22px;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:90}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .seg-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0}
+  .seg-row + .seg-row{border-top:1px solid var(--line)}
+  .seg-group{display:flex;gap:10px}
+  .seg{width:76px;height:40px;border-radius:20px;background:var(--page);
+    display:flex;align-items:center;justify-content:center;border:1.5px solid transparent;cursor:pointer}
+  .seg.on{background:var(--accent-soft);border-color:var(--accent)}
+  .seg.disabled{opacity:.38;cursor:not-allowed}
+  .shape-rect{width:26px;height:17px;border:2px solid var(--ink);border-radius:5px}
+  .shape-circle{width:19px;height:19px;border:2px solid var(--ink);border-radius:50%}
+  .seg.on .shape-rect,.seg.on .shape-circle{border-color:var(--accent)}
+  .dir-abc{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--ink);
+    border:1.5px solid var(--ink);border-radius:3px;padding:2px 6px}
+  .seg.on .dir-abc{color:var(--accent);border-color:var(--accent)}
+  .dir-abc.vert{writing-mode:vertical-rl;padding:5px 2px}
+  .dir-badge{font-size:10px;padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:500;vertical-align:1px}
+  .dir-badge.auto{color:#2E7D32;background:#EAF6EA}
+  .dir-badge.manual{color:var(--ink-2);background:var(--page)}
+  .dir-row-hint{font-size:11px;color:var(--ink-3);padding:0 0 14px;margin-top:-8px;line-height:1.6}
+  .brand.vert{writing-mode:vertical-rl}
+  .s1-preview{background:#fff;border-radius:14px;padding:26px 16px 28px;
+    display:flex;flex-direction:column;align-items:center}
+  .pv-label{background:#fff;border:1.5px solid #d9d9de;border-radius:6px;
+    box-shadow:0 3px 10px rgba(0,0,0,.07);position:relative;
+    display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .pv-label .brand{font-size:8px;letter-spacing:1px;color:var(--ink-3);font-weight:600}
+  .pv-w{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--ink-2)}
+  .pv-h{position:absolute;right:-30px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ink-2);writing-mode:vertical-rl}
+  .pv-roll{position:absolute;right:-52px;bottom:-8px;width:26px;height:36px;
+    background:linear-gradient(180deg,#d7d7dc,#c2c2c8);border-radius:6px;
+    display:flex;align-items:center;justify-content:center}
+  .pv-roll::after{content:'';width:9px;height:9px;background:#f2f2f4;border-radius:50%;box-shadow:inset 0 0 0 2px #a8a8b0}
+
+  /* ---------- 下拉（设置页/编辑器共用样式） ---------- */
+  .dropdown{
+    position:absolute;top:calc(100% - 4px);right:0;z-index:45;
+    background:#fff;border-radius:14px;min-width:172px;
+    box-shadow:0 10px 36px rgba(20,20,40,.16),0 2px 8px rgba(20,20,40,.06);
+    padding:6px;display:none;max-height:330px;overflow-y:auto;
+  }
+  .dropdown.show{display:block}
+  .dd-item{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 12px;font-size:14px;cursor:pointer;border-radius:9px;white-space:nowrap;
+  }
+  .dd-item:hover{background:var(--page)}
+  .dd-item + .dd-item{border-top:1px solid var(--line);border-radius:0}
+  .dd-item.selected{color:var(--accent);font-weight:600}
+  .dd-item .left{display:flex;align-items:center;gap:7px}
+  .dd-item .check{visibility:hidden;color:var(--accent);font-weight:700}
+  .dd-item.selected .check{visibility:visible}
+  .dd-thumb{border:1.5px solid var(--ink-3);border-radius:3px;background:#fff;flex-shrink:0}
+  .dd-item.selected .dd-thumb{border-color:var(--accent)}
+  .printer-ic{font-size:12px;line-height:1}
+  .dd-tag{font-size:10px;color:#C08A2D;background:#FBF3E3;border-radius:4px;padding:1px 6px;font-weight:500}
+
+  /* ---------- 屏2：编辑器 ---------- */
+  .navbar{display:flex;align-items:center;justify-content:space-between;padding:4px 18px}
+  .nav-back{font-size:20px;cursor:pointer;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:22px}
+  .nav-title{font-size:15px;font-weight:600}
+  .nav-more{font-size:18px;color:var(--ink-2);width:44px;height:44px;display:flex;align-items:center;justify-content:center;letter-spacing:1px;border-radius:22px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;
+    padding:4px 16px 12px;border-bottom:1px solid var(--line);position:relative}
+  .tb-left{display:flex;align-items:center;gap:10px;position:relative}
+  .size-group{display:flex;align-items:center;gap:5px;cursor:pointer}
+  .w-text{font-size:13px;color:var(--ink-3);display:none}
+  .w-text.show{display:inline}
+  .h-chip{display:flex;align-items:center;gap:6px;background:#E8E8EC;
+    border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700}
+  .h-chip .pen{font-size:11px;color:var(--ink-2)}
+  .h-chip .caret{border-top-color:var(--ink-2)}
+  .tb-icon{font-size:15px;color:var(--ink-2);width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:18px;cursor:pointer}
+  .tb-icon.active{color:var(--accent)}
+  .tb-icon.off{opacity:.32;pointer-events:none}
+  .tb-right{display:flex;align-items:center;gap:13px}
+  .tb-btn{font-size:12px;color:var(--ink-2);display:flex;align-items:center;gap:3px;white-space:nowrap;min-height:36px;padding:0 4px;cursor:pointer}
+  .tb-btn.off{opacity:.32;pointer-events:none}
+  .canvas-area{flex:1;overflow:auto;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:12px 0;scrollbar-width:none}
+  .canvas-area::-webkit-scrollbar{display:none}
+  .sheet{background:#fff;border:1.5px solid #E4E4E8;
+    box-shadow:0 4px 16px rgba(0,0,0,.06);
+    display:flex;align-items:center;justify-content:center;
+    transition:width .22s ease,height .22s ease,border-radius .2s ease;
+    transform:none!important;
+    flex-shrink:0;max-width:300px}
+  .sheet.rotated{transform:none!important}
+  .sheet-wrap{display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    transition:width .22s ease,height .22s ease}
+  .sheet .hint{font-size:14px;color:var(--ink-2);white-space:nowrap;pointer-events:none}
+  .sheet .demo-content{font-size:16px;font-weight:700;letter-spacing:.5px;user-select:none;
+    display:inline-flex;align-items:center;justify-content:center;
+    transform:rotate(var(--print-content-angle,0deg));transform-origin:center;
+    transition:none}
+  .total{margin-top:14px;font-size:12px;color:var(--ink-2)}
+  .total b{color:var(--ink);font-weight:700}
+  .total.hide{display:none}
+  .undo-redo{position:absolute;right:14px;bottom:196px;z-index:10;background:#fff;
+    border-radius:20px;box-shadow:0 4px 14px rgba(20,20,40,.12);display:flex;overflow:hidden}
+  .undo-redo div{padding:9px 14px;font-size:14px;color:var(--ink-2);cursor:pointer}
+  .undo-redo div.off{opacity:.32;pointer-events:none}
+  .undo-redo div:first-child{border-right:1px solid var(--line)}
+  .tools{flex-shrink:0;background:#fff;border-radius:20px 20px 0 0;
+    box-shadow:0 -4px 20px rgba(20,20,40,.06);
+    padding:8px 10px calc(12px + env(safe-area-inset-bottom,8px))}
+  .tools-grip{width:36px;height:4px;background:#E3E3E8;border-radius:2px;margin:2px auto 10px}
+  .tool-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px}
+  .tool{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .tool .t-ic{font-size:20px;line-height:1}
+  .tool .t-name{font-size:10px;color:var(--ink-2)}
+  .tool.off{opacity:.32}
+
+  /* ---------- 标签尺寸弹窗（连续纸：双字段 + 数字键盘） ---------- */
+  .dialog-mask{position:absolute;inset:0;background:rgba(15,15,20,.45);z-index:60;
+    display:none;flex-direction:column}
+  .dialog-mask.show{display:flex}
+  .dialog-center{flex:1;display:flex;align-items:center;justify-content:center;padding:0 26px}
+  .dialog{background:#fff;border-radius:18px;width:100%;max-width:310px;padding:20px 20px 16px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25)}
+  .dialog h4{font-size:16px;font-weight:700;margin-bottom:14px}
+  .d-label{font-size:12px;color:var(--ink-2);margin-bottom:6px}
+  .d-field{display:flex;align-items:center;background:var(--page);
+    border:1.5px solid transparent;border-radius:10px;height:44px;padding:0 12px;
+    cursor:pointer;transition:all .15s;margin-bottom:12px}
+  .d-field.focus{border-color:var(--accent);background:#fff}
+  .d-field .v{flex:1;font-size:16px;font-weight:700;color:var(--ink)}
+  .d-field.focus .v{color:var(--accent)}
+  .d-field .u{font-size:12px;color:var(--ink-3)}
+  .cursor-bar{display:inline-block;width:1.5px;height:17px;background:var(--accent);
+    vertical-align:-3px;margin-left:1px;opacity:0}
+  .d-field.focus .cursor-bar{animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:1}}
+  .d-hint{font-size:11px;color:var(--ink-3);margin:-6px 0 10px}
+  .d-hint.err{color:var(--warn)}
+  .d-btns{display:flex;gap:10px;margin-top:6px}
+  .d-btns button{flex:1;border:none;border-radius:22px;padding:12px 0;
+    font-size:14px;font-weight:600;cursor:pointer}
+  .d-cancel{background:var(--page);color:var(--ink)}
+  .d-ok{background:var(--ink);color:#fff}
+  .d-ok:disabled{background:#C9C9CF;cursor:not-allowed}
+  .numpad{flex-shrink:0;background:#D6D8DE;padding:8px 6px calc(10px + env(safe-area-inset-bottom,8px))}
+  .np-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .np-key{background:#fff;border-radius:7px;height:48px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:22px;cursor:pointer;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+  .np-key:active{background:#EDEDEF}
+  .np-key .sub{font-size:9px;letter-spacing:1.5px;color:var(--ink-2);margin-top:-2px}
+  .np-key.fn{background:transparent;box-shadow:none;font-size:19px}
+
+  .mask{position:absolute;inset:0;z-index:40;display:none}
+  .mask.show{display:block}
+
+  /* ============ 说明面板 ============ */
+  .docs{width:340px;padding:26px 26px 30px;background:#fff;border-radius:20px;
+    box-shadow:0 12px 40px rgba(20,20,30,.08);font-size:13px;line-height:1.7;color:var(--ink-2)}
+  .docs h2{font-size:15px;color:var(--ink);margin-bottom:4px}
+  .docs .sub{font-size:12px;color:var(--ink-3);margin-bottom:16px}
+  .docs h3{font-size:12px;color:var(--accent);margin:16px 0 4px;font-weight:700}
+  .docs b{color:var(--ink)}
+  .docs code{background:var(--page);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--ink)}
+  .state-box{margin-top:18px;background:var(--page);border-radius:12px;padding:12px 14px;
+    font-size:12px;color:var(--ink);line-height:1.9}
+  .state-box b{color:var(--accent)}
+
+  @media (max-width:880px){body{flex-direction:column;align-items:center}.docs{width:375px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ================= 手机原型 ================= -->
+<div class="phone">
+
+  <!-- 屏1：标签设置 -->
+  <div class="screen active" id="screen1">
+    <div class="statusbar"><span>9:41</span><span class="icons">▮▮ ᯤ ▉</span></div>
+    <div class="s1-nav">
+      <span class="s1-close" onclick="closeSettings()" title="关闭">✕</span>
+      <button class="btn-confirm" onclick="goEditor()">确认</button>
+    </div>
+    <div class="s1-title">标签设置</div>
+    <div class="s1-scroll">
+      <div class="card">
+        <div class="name-field">
+          <div class="field-label">标签名称</div>
+          <input type="text" id="labelNameInput" maxlength="20" placeholder="请输入">
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" onclick="togglePaperDD(event)">
+          <span class="field-label">纸张类型</span>
+          <span class="rv" id="paperVal">间隙纸 <span class="caret"></span></span>
+          <div class="dropdown" id="paperDD"></div>
+        </div>
+        <!-- 间隙纸（默认样式）：单行标签尺寸下拉 -->
+        <div class="row" id="gapSizeRow" onclick="toggleGapDD(event)">
+          <span class="field-label">标签尺寸</span>
+          <span class="rv" id="gapSizeVal">50x40 mm <span class="caret"></span></span>
+          <div class="dropdown" id="gapDD"></div>
+        </div>
+        <!-- 连续纸样式：宽/高两行（点击直接调起系统数字键盘） -->
+        <div class="row" id="contWRow" style="display:none">
+          <span class="field-label">标签宽(mm)</span>
+          <input class="row-input" id="s1WInput" inputmode="numeric" value="50">
+        </div>
+        <div class="row" id="contHRow" style="display:none">
+          <span class="field-label">标签高(mm)</span>
+          <input class="row-input" id="s1HInput" inputmode="numeric" value="70">
+        </div>
+      </div>
+      <div class="card">
+        <div class="seg-row"><span class="field-label">标签形状</span>
+          <div class="seg-group">
+            <div class="seg on" id="segRect" onclick="setShape('rect')"><div class="shape-rect"></div></div>
+            <div class="seg" id="segCircle" onclick="setShape('circle')"><div class="shape-circle"></div></div>
+          </div></div>
+        <div class="seg-row">
+          <span class="field-label">打印方向<span class="dir-badge auto" id="dirBadge">自动</span></span>
+          <div class="seg-group">
+            <div class="seg on" id="dirH" onclick="setDir('h')"><span class="dir-abc">A B C</span></div>
+            <div class="seg" id="dirV" onclick="setDir('v')"><span class="dir-abc vert">ABC</span></div>
+          </div></div>
+        <div class="dir-row-hint" id="dirHint">宽 &gt; 高 → 默认横排；高 &gt; 宽 → 默认竖排；可随时手动切换</div>
+      </div>
+      <div class="s1-preview">
+        <div class="pv-label" id="s1Pv">
+          <span class="brand" id="pvBrand">INKBIRD</span>
+          <span class="pv-w" id="s1PvW">50mm</span>
+          <span class="pv-h" id="s1PvH">40mm</span>
+          <div class="pv-roll"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 屏2：编辑器 -->
+  <div class="screen" id="screen2">
+    <div class="statusbar"><span>9:41</span><span class="icons">▮▮ ᯤ ▉</span></div>
+    <div class="navbar">
+      <span class="nav-back" onclick="goSettings()">←</span>
+      <span class="nav-title" id="editorTitle">未命名</span>
+      <span class="nav-more">···</span>
+    </div>
+    <div class="toolbar">
+      <div class="tb-left">
+        <div class="size-group" id="sizeGroup" onclick="chipTap(event)">
+          <span class="w-text" id="wText">50 x</span>
+          <div class="h-chip">
+            <span id="chipText">50x40 mm</span>
+            <span class="pen" id="chipIcon">▾</span>
+          </div>
+        </div>
+        <span class="tb-icon" id="rotateBtn" onclick="toggleCanvasRotate()" title="旋转视图（仅影响编辑显示）">⟳</span>
+        <div class="dropdown" id="editorGapDD" style="left:0;right:auto;top:calc(100% + 6px)"></div>
+      </div>
+      <div class="tb-right">
+        <span class="tb-btn off" id="clearBtn" onclick="clearCanvas()">🧹 清空</span>
+        <span class="tb-btn off" id="alignBtn" onclick="alignCanvas()">⇤ 对齐</span>
+      </div>
+    </div>
+    <div class="canvas-area">
+      <div class="sheet-wrap" id="sheetWrap">
+        <div class="sheet" id="sheetEl"><span class="hint">双击编辑</span></div>
+      </div>
+      <div class="total" id="totalWrap">总长度 <b id="totalVal">70mm</b></div>
+    </div>
+    <div class="undo-redo"><div class="off" id="undoBtn" onclick="undoCanvas()">↺</div><div class="off" id="redoBtn" onclick="redoCanvas()">↻</div></div>
+    <div class="tools">
+      <div class="tools-grip"></div>
+      <div class="tool-grid">
+        <div class="tool" onclick="addDemoContent('文本')"><span class="t-ic">T</span><span class="t-name">文本</span></div>
+        <div class="tool" onclick="addDemoContent('图标')"><span class="t-ic">✻</span><span class="t-name">图标</span></div>
+        <div class="tool" onclick="addDemoContent('边框')"><span class="t-ic">▢</span><span class="t-name">边框</span></div>
+        <div class="tool" onclick="addDemoContent('图片')"><span class="t-ic">🖼</span><span class="t-name">图片</span></div>
+        <div class="tool" onclick="addDemoContent('线条')"><span class="t-ic">〰</span><span class="t-name">线条</span></div>
+        <div class="tool" onclick="addDemoContent('形状')"><span class="t-ic">◇</span><span class="t-name">形状</span></div>
+        <div class="tool off"><span class="t-ic">🕐</span><span class="t-name">日期时间</span></div>
+        <div class="tool off"><span class="t-ic">#</span><span class="t-name">序列号</span></div>
+        <div class="tool" onclick="addDemoContent('二维码')"><span class="t-ic">▦</span><span class="t-name">二维码</span></div>
+        <div class="tool" onclick="addDemoContent('涂鸦')"><span class="t-ic">✎</span><span class="t-name">涂鸦</span></div>
+        <div class="tool" onclick="addDemoContent('模板')"><span class="t-ic">▤</span><span class="t-name">模板</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 标签尺寸弹窗（连续纸专用，两屏共用） -->
+  <div class="dialog-mask" id="dialogMask">
+    <div class="dialog-center" onclick="if(event.target===this)cancelDialog()">
+      <div class="dialog">
+        <h4>标签尺寸</h4>
+        <div class="d-label">标签宽(mm)</div>
+        <div class="d-field" id="fW">
+          <input class="d-input" id="vW" inputmode="numeric" value="50"
+            style="flex:1;border:none;background:transparent;font-size:16px;font-weight:700;color:var(--ink);outline:none;font-family:inherit">
+          <span class="u">mm</span>
+        </div>
+        <div class="d-hint" id="hintW">范围 6–50mm（两寸机）</div>
+        <div class="d-label">标签高(mm)</div>
+        <div class="d-field" id="fH">
+          <input class="d-input" id="vH" inputmode="numeric" value="70"
+            style="flex:1;border:none;background:transparent;font-size:16px;font-weight:700;color:var(--ink);outline:none;font-family:inherit">
+          <span class="u">mm</span>
+        </div>
+        <div class="d-hint" id="hintH">范围 20–300mm</div>
+        <div class="d-btns">
+          <button class="d-cancel" onclick="cancelDialog()">取消</button>
+          <button class="d-ok" id="okBtn" onclick="okDialog()">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mask" id="mask" onclick="closeAllDD()"></div>
+  <div class="toast" id="toastEl"></div>
+</div>
+<style>input{user-select:text;-webkit-user-select:text}</style>
+
+<!-- ================= 说明面板 ================= -->
+<div class="docs">
+  <h2>全链路 · 原结构微调版</h2>
+  <div class="sub">保留现有字段、顺序、双页面结构和尺寸入口，仅优化状态与交互细节</div>
+
+  <h3>① 结构保持不变</h3>
+  继续使用：<b>标签名称、纸张类型、标签尺寸/宽高、标签形状、打印方向</b>，不拆字段，不增加新的设置层级。
+
+  <h3>② 状态微调</h3>
+  连续纸宽高会记住上一次设置，不再每次切换都重置；矩形与圆形分别记住上一次尺寸；修改尺寸时恢复该尺寸对应的自动打印方向，手动修改打印方向时画布方向同步切换。
+
+  <h3>③ 圆形尺寸修正</h3>
+  仍保留“标签尺寸”字段。切换圆形时自动匹配为正方形尺寸，下拉只显示等宽等高选项，避免出现“50×40mm但预览为40mm圆”的不一致。
+
+  <h3>④ 模板画布默认旋转规则</h3>
+  <b>高 &gt; 宽</b>：画布默认旋转 90° 并横向显示，显示宽 = 原高度、显示高 = 原宽；<br>
+  <b>宽 &gt; 高</b>：画布不旋转，按原始宽高显示；<br>
+  <b>宽 = 高</b>：无需判断，按原始尺寸显示。自动状态按以上规则展示；用户手动切换打印方向时，画布同步切换为相反的横竖显示状态，实际标签宽高数据始终不互换。
+
+  <h3>⑤ 细节体验</h3>
+  标签名称同步到编辑器标题；圆形切连续纸前二次确认；弹窗非法值保留并显示错误，确认按钮置灰；增大返回、关闭、旋转等点击区域。
+
+  <h3>⑥ 编辑器轻交互</h3>
+  保留原工具栏结构。点击文本、图片、二维码等工具可生成示意内容，并联动清空、对齐、撤销和恢复状态。
+
+  <div class="state-box" id="stateBox"></div>
+  <div style="margin-top:16px;padding:12px 14px;border-radius:12px;background:#F0EDFF;color:#4E43B8;font-size:12px;line-height:1.8">
+    <b>本版尺寸切换规则</b><br>
+    高&gt;宽：画布显示宽=原高度、显示高=原宽，打印方向自动为竖向；<br>
+    宽≥高：画布按原尺寸显示，打印方向自动为横向；<br>
+    编辑器中更换尺寸仅做宽高缩放，不播放90°旋转动画；<br>
+    手动将默认竖向改为横向时，画布同步由横向改为竖向；反向切换同理。
+  </div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+const PAPERS=['间隙纸','连续纸','冷冻标签','透明标签','黑标纸','镭射纸'];
+const CONTINUOUS='连续纸';
+const GAP_SIZES=[{w:50,h:30},{w:50,h:40,printer:true},{w:50,h:50},{w:50,h:70},{w:40,h:20},{w:40,h:30},{w:40,h:60}];
+const W_MIN=6,W_MAX=50,H_MIN=20,H_MAX=300;   // 两寸机
+const CONT_DEF_W=50,CONT_DEF_H=70;
+
+/* ================= 状态（单一数据源） ================= */
+let paper='间隙纸';
+let gapSize={w:50,h:40};
+let lastRectSize={w:50,h:40};
+let lastCircleSize={w:40,h:40};
+let contW=CONT_DEF_W, contH=CONT_DEF_H;
+let shape='rect';
+let labelName='';
+let dirty=false;
+let canvasHistory=[];
+let canvasFuture=[];
+let draftW='50', draftH='70', focus='h';
+let dir='h', dirAuto=true;   // 打印方向：'h' 横排 / 'v' 竖排；dirAuto=是否仍跟随自动规则
+let dirInherited=false;      // 进入编辑器后切换尺寸时，是否继承创建/当前打印方向
+let editorDirectionLocked=false; // 点击确认进入编辑器后，尺寸变化不再重算打印方向
+let canvasRotated=false;     // 模板画布是否旋转90°；自动规则与打印方向共同驱动
+const isCont=()=>paper===CONTINUOUS;
+
+/* ================= 尺寸规则：打印方向 × 模板画布方向 ================= */
+// 统一规则：
+// 高 > 宽：画布默认横向显示（显示宽=原高度、显示高=原宽），打印方向默认竖向。
+// 宽 > 高：画布按原始宽高显示，打印方向默认横向。
+// 宽 = 高：画布按原始尺寸显示，打印方向默认横向。
+function defaultDir(w,h){return h>w?'v':'h';}
+function defaultCanvasRotation(w,h){return h>w;}
+
+// 打印方向与画布横竖严格联动：
+// 1. 打印方向等于当前尺寸的默认方向时，采用尺寸规则的默认画布方向；
+// 2. 用户手动切到相反打印方向时，画布方向也同步反转。
+// 例如 50×70mm：默认竖向打印 + 横向画布；手动改横向打印后，画布恢复为竖向。
+function canvasRotationForDir(w,h,d){
+  if(w===h)return false;
+  const baseRotation=defaultCanvasRotation(w,h);
+  return d===defaultDir(w,h)?baseRotation:!baseRotation;
+}
+
+// 尺寸、纸张类型或形状变化时统一重新套用默认规则。
+// 编辑器中途改尺寸只改变显示宽高，不播放90°旋转动画。
+function updateDirAuto(force=true){
+  const w=isCont()?contW:gapSize.w, h=isCont()?contH:gapSize.h;
+  dir=defaultDir(w,h);
+  dirAuto=true;
+  dirInherited=false;
+  canvasRotated=!isCont()&&shape!=='circle'&&canvasRotationForDir(w,h,dir);
+}
+
+// 首次创建前：尺寸变化仍按宽高规则计算默认打印方向。
+// 进入编辑器后：尺寸变化继承当前打印方向，只重新计算新尺寸下的画布横竖。
+function updateDirectionAfterSizeChange(){
+  const w=isCont()?contW:gapSize.w, h=isCont()?contH:gapSize.h;
+  if(!editorDirectionLocked){
+    updateDirAuto(true);
+    return;
+  }
+  if(dirAuto)dirInherited=true;
+  canvasRotated=!isCont()&&shape!=='circle'&&canvasRotationForDir(w,h,dir);
+}
+
+// 用户手动修改打印方向时，画布同步切换横竖方向。
+// 实际标签尺寸不交换；下一次修改尺寸时重新恢复该尺寸的自动规则。
+function setDir(d){
+  if(d===dir&&!dirAuto)return;
+  dir=d;
+  dirty=true;
+  dirAuto=false;
+  dirInherited=false;
+  const w=isCont()?contW:gapSize.w, h=isCont()?contH:gapSize.h;
+  canvasRotated=!isCont()&&shape!=='circle'&&canvasRotationForDir(w,h,dir);
+  render();
+}
+
+// 编辑器旋转按钮也同步切换打印方向，避免画布方向与打印方向脱节。
+function toggleCanvasRotate(){
+  if(isCont()||shape==='circle')return;
+  setDir(dir==='h'?'v':'h');
+}
+
+/* ================= 渲染 ================= */
+function render(){
+  const cont=isCont();
+  /* 设置页 */
+  document.getElementById('editorTitle').textContent=labelName.trim()||'未命名';
+  document.getElementById('paperVal').innerHTML=paper+' <span class="caret"></span>';
+  document.getElementById('paperVal').classList.toggle('acc',paper!=='间隙纸');
+  document.getElementById('gapSizeRow').style.display=cont?'none':'flex';
+  document.getElementById('contWRow').style.display=cont?'flex':'none';
+  document.getElementById('contHRow').style.display=cont?'flex':'none';
+  document.getElementById('gapSizeVal').innerHTML=`${gapSize.w}x${gapSize.h} mm <span class="caret"></span>`;
+  const wIn=document.getElementById('s1WInput'),hIn=document.getElementById('s1HInput');
+  if(document.activeElement!==wIn)wIn.value=contW;
+  if(document.activeElement!==hIn)hIn.value=contH;
+  const circle=document.getElementById('segCircle'),rect=document.getElementById('segRect');
+  rect.classList.toggle('on',shape==='rect');
+  circle.classList.toggle('on',shape==='circle');
+  circle.classList.toggle('disabled',cont);
+  /* 设置页预览：高>宽时默认旋转为横向；宽>=高时按原始宽高；实际尺寸数据不互换 */
+  const pv=document.getElementById('s1Pv');
+  const pw=cont?contW:gapSize.w, ph=cont?contH:gapSize.h;
+  let dispW,dispH;
+  if(shape==='circle'&&!cont){
+    dispW=dispH=Math.min(pw,ph);
+    pv.style.width=dispW*2+'px';pv.style.height=dispH*2+'px';pv.style.borderRadius='50%';
+  }else{
+    dispW=pw;
+    dispH=ph;
+    if(!cont&&canvasRotated){[dispW,dispH]=[dispH,dispW];}
+    pv.style.width=Math.min(140,dispW*2)+'px';
+    pv.style.height=Math.min(170,dispH*2)+'px';
+    pv.style.borderRadius='6px';
+  }
+  document.getElementById('s1PvW').textContent=dispW+'mm';
+  document.getElementById('s1PvH').textContent=cont?dispH+'mm（可变）':dispH+'mm';
+  /* 打印方向：横排/竖排选中态 + 自动/手动徽标 + 提示文案 + 预览图文字方向联动 */
+  document.getElementById('dirH').classList.toggle('on',dir==='h');
+  document.getElementById('dirV').classList.toggle('on',dir==='v');
+  const dirBadge=document.getElementById('dirBadge');
+  const dirModeText=dirInherited?'继承':(dirAuto?'自动':'手动');
+  dirBadge.textContent=dirModeText;
+  dirBadge.classList.toggle('auto',dirAuto);
+  dirBadge.classList.toggle('manual',!dirAuto);
+  const dirRel=ph>pw?'高 > 宽':(pw>ph?'宽 > 高':'宽 = 高');
+  const canvasText=cont
+    ?'连续纸按原始宽高显示'
+    :(shape==='circle'
+      ?'圆形画布无需旋转'
+      :(canvasRotated
+        ?`画布横向显示（${ph}×${pw}mm）`
+        :`画布竖向/原始方向显示（${pw}×${ph}mm）`));
+  const dirReason=dirInherited?'继承创建方向':(dirAuto?'默认':'已手动改为');
+  document.getElementById('dirHint').textContent=
+    `当前 ${pw}×${ph}mm，${dirRel} → ${dirReason}${dir==='h'?'横排':'竖排'}；${canvasText}；编辑内容按${dir==='h'?'横向':'竖向'}初始化`;
+  document.getElementById('pvBrand').classList.toggle('vert',dir==='v');
+  /* 编辑器 */
+  document.getElementById('wText').classList.toggle('show',cont);
+  document.getElementById('wText').textContent=contW+' x';
+  document.getElementById('chipText').textContent=cont?contH+' mm':`${gapSize.w}x${gapSize.h} mm`;
+  document.getElementById('chipIcon').textContent=cont?'✎':'▾';
+  document.getElementById('totalWrap').classList.toggle('hide',!cont);
+  document.getElementById('totalVal').textContent=contH+'mm';
+  /* 编辑器画布：按规则直接计算显示宽高，不执行CSS旋转动画。
+     因此中途切换尺寸时只会正常缩放到新尺寸。 */
+  const sh=document.getElementById('sheetEl');
+  const wrap=document.getElementById('sheetWrap');
+  const ew=cont?contW:gapSize.w, eh=cont?contH:gapSize.h;
+  const rotated=!cont&&shape!=='circle'&&canvasRotated;
+  if(shape==='circle'&&!cont){
+    const d=Math.min(ew,eh)*4;
+    sh.style.width=d+'px';sh.style.height=d+'px';sh.style.borderRadius='50%';
+    wrap.style.width=d+'px';wrap.style.height=d+'px';
+  }else{
+    // 高>宽时直接交换“显示尺寸”，真实标签尺寸仍保持 ew×eh。
+    const displayW=rotated?eh:ew;
+    const displayH=rotated?ew:eh;
+    const elW=Math.min(300,Math.max(90,displayW*4));
+    const elH=Math.min(330,Math.max(50,displayH*(cont?1.6:4)));
+    sh.style.width=elW+'px';
+    sh.style.height=elH+'px';
+    sh.style.borderRadius='10px';
+    wrap.style.width=elW+'px';
+    wrap.style.height=elH+'px';
+  }
+  sh.classList.remove('rotated');
+  // 画布不再做transform旋转，所以打印内容可直接按打印方向初始化。
+  // 横向=0°，竖向=90°；尺寸切换时立即更新，不播放旋转动画。
+  const printContentAngle=dir==='v'?90:0;
+  sh.style.setProperty('--print-content-angle',`${printContentAngle}deg`);
+  sh.dataset.printDirection=dir;
+  const rotateBtn=document.getElementById('rotateBtn');
+  rotateBtn.classList.toggle('off',cont||shape==='circle');
+  rotateBtn.classList.toggle('active',rotated);
+  rotateBtn.title=cont?'连续纸不支持方向切换':(shape==='circle'?'圆形标签无需切换画布方向':'切换打印方向并同步切换画布横竖');
+  refreshEditorActions();
+  document.getElementById('stateBox').innerHTML=
+    `<b>实时状态（单一数据源）</b><br>
+     纸张类型：${paper}${cont?'':'（默认样式）'}<br>
+     尺寸：${cont?contW+'×'+contH+'mm（宽6–50 / 高20–300）':gapSize.w+'×'+gapSize.h+'mm（预设）'}<br>
+     形状：${shape==='rect'?'矩形':'圆形'}${cont?'（圆形置灰）':''}<br>
+     打印方向：${dir==='h'?'横排':'竖排'}（${dirInherited?'继承创建方向':(dirAuto?'自动':'手动')}）<br>
+     画布方向：${cont?'—（连续纸按原始尺寸）':(shape==='circle'?'—（圆形无需判断）':(canvasRotated?'横向显示':'竖向/原始方向显示'))}`;
+}
+
+/* ================= 纸张类型下拉 ================= */
+function togglePaperDD(e){
+  if(e.target.closest('.dropdown'))return;
+  const dd=document.getElementById('paperDD');
+  const open=!dd.classList.contains('show');
+  closeAllDD();
+  if(!open)return;
+  dd.innerHTML=PAPERS.map(p=>{
+    const rectOnly=p===CONTINUOUS&&shape==='circle';
+    return `<div class="dd-item ${p===paper?'selected':''}" onclick="pickPaper('${p}',event)">
+      <span class="left">${p==='间隙纸'?'<span class=printer-ic>🖨</span>':''}${p}${rectOnly?'<span class="dd-tag">仅矩形</span>':''}</span>
+      <span class="check">✓</span></div>`;
+  }).join('');
+  dd.classList.add('show');
+  document.getElementById('mask').classList.add('show');
+}
+function pickPaper(p,e){
+  e.stopPropagation();
+  if(p===paper){closeAllDD();return;}
+  const wasCont=isCont();
+  if(p===CONTINUOUS&&shape==='circle'){
+    const ok=window.confirm('连续纸仅支持矩形标签。切换后将改为矩形，是否继续？');
+    if(!ok){closeAllDD();return;}
+    lastCircleSize={...gapSize};
+    shape='rect';
+    gapSize={...lastRectSize};
+  }
+  paper=p;
+  dirty=true;
+  if(!wasCont&&p===CONTINUOUS){
+    flashRows(['contWRow','contHRow']);          // 保留上一次连续纸宽高
+  }else if(wasCont&&p!==CONTINUOUS){
+    flashRows(['gapSizeRow']);                   // 恢复上次固定尺寸
+  }
+  updateDirAuto();
+  closeAllDD();render();
+}
+function flashRows(ids){
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash');
+  });
+}
+
+/* ================= 二维尺寸下拉（设置页 + 编辑器） ================= */
+function gapDDHtml(){
+  const round=shape==='circle';
+  const sizes=round
+    ?[...new Set(GAP_SIZES.map(s=>Math.min(s.w,s.h)))].sort((a,b)=>a-b).map(d=>({w:d,h:d,printer:d===40}))
+    :GAP_SIZES;
+  return sizes.map(s=>{
+    const k=18/Math.max(s.w,s.h), d=Math.min(s.w,s.h)*k;
+    const thumb=round
+      ?`<span class="dd-thumb" style="width:${d}px;height:${d}px;border-radius:50%"></span>`
+      :`<span class="dd-thumb" style="width:${s.w*k}px;height:${s.h*k}px"></span>`;
+    return `<div class="dd-item ${s.w===gapSize.w&&s.h===gapSize.h?'selected':''}" onclick="pickGap(${s.w},${s.h},event)">
+      <span class="left">${thumb}${s.printer?'<span class=printer-ic>🖨</span>':''}${s.w}x${s.h} mm</span>
+      <span class="check">✓</span></div>`;
+  }).join('');
+}
+function toggleGapDD(e){
+  if(e.target.closest('.dropdown'))return;
+  const dd=document.getElementById('gapDD');
+  const open=!dd.classList.contains('show');
+  closeAllDD();
+  if(!open)return;
+  dd.innerHTML=gapDDHtml();
+  dd.classList.add('show');
+  document.getElementById('mask').classList.add('show');
+}
+function pickGap(w,h,e){
+  e.stopPropagation();
+  gapSize={w,h};
+  if(shape==='circle')lastCircleSize={w,h};else lastRectSize={w,h};
+  dirty=true;
+  updateDirectionAfterSizeChange();
+  closeAllDD();render();
+}
+
+/* ================= 编辑器 chip：双态 ================= */
+function chipTap(e){
+  e.stopPropagation();
+  if(isCont()){openDialog('h');return;}
+  const dd=document.getElementById('editorGapDD');
+  const open=!dd.classList.contains('show');
+  closeAllDD();
+  if(!open)return;
+  dd.innerHTML=gapDDHtml();
+  dd.classList.add('show');
+  document.getElementById('mask').classList.add('show');
+}
+function closeAllDD(){
+  document.querySelectorAll('.dropdown').forEach(d=>d.classList.remove('show'));
+  document.getElementById('mask').classList.remove('show');
+}
+
+/* ================= 屏幕切换 ================= */
+function goEditor(){
+  closeAllDD();
+  // 首次进入编辑器时锁定当前创建方向。之后切换尺寸继承该方向，
+  // 用户手动切换方向后则继承新的当前方向。
+  editorDirectionLocked=true;
+  document.getElementById('screen1').classList.remove('active');
+  document.getElementById('screen2').classList.add('active');
+  render();
+}
+function goSettings(){
+  closeAllDD();
+  document.getElementById('screen2').classList.remove('active');
+  document.getElementById('screen1').classList.add('active');
+}
+function closeSettings(){
+  closeAllDD();
+  if(dirty&&!window.confirm('当前设置尚未退出，确定放弃并关闭吗？'))return;
+  toast('已模拟关闭标签设置');
+}
+
+/* ================= 形状 ================= */
+function setShape(s){
+  if(s==='circle'&&isCont()){toast('连续纸仅支持矩形标签');return;}
+  if(s===shape)return;
+  if(s==='circle'){
+    lastRectSize={...gapSize};
+    gapSize={...lastCircleSize};
+    toast(`圆形标签已匹配为 ${gapSize.w}×${gapSize.h}mm`);
+  }else{
+    lastCircleSize={...gapSize};
+    gapSize={...lastRectSize};
+  }
+  shape=s;
+  dirty=true;
+  updateDirAuto();
+  render();
+}
+
+/* ================= 连续纸尺寸输入（原生键盘 · 超范围重置为上次值） ================= */
+function clampOrRollback(kind,inputEl,prev){
+  // kind: 'w' | 'h'；返回生效值。超出范围 → 重置为上次设置的值 + toast
+  const min=kind==='w'?W_MIN:H_MIN, max=kind==='w'?W_MAX:H_MAX;
+  const name=kind==='w'?'标签宽':'标签高';
+  const v=parseInt(inputEl.value,10);
+  if(isNaN(v)){inputEl.value=prev;return prev;}
+  if(v<min){toast(`${name}最小 ${min}mm`);inputEl.value=prev;return prev;}
+  if(v>max){toast(`${name}最大 ${max}mm`);inputEl.value=prev;return prev;}
+  return v;
+}
+
+/* ---- 设置页行内输入 ---- */
+let s1PrevW=50,s1PrevH=70;
+const s1WInput=document.getElementById('s1WInput');
+const s1HInput=document.getElementById('s1HInput');
+s1WInput.addEventListener('focus',()=>{s1PrevW=contW;s1WInput.select();});
+s1HInput.addEventListener('focus',()=>{s1PrevH=contH;s1HInput.select();});
+s1WInput.addEventListener('blur',()=>{const next=clampOrRollback('w',s1WInput,s1PrevW);dirty=dirty||next!==contW;contW=next;updateDirectionAfterSizeChange();render();});
+s1HInput.addEventListener('blur',()=>{const next=clampOrRollback('h',s1HInput,s1PrevH);dirty=dirty||next!==contH;contH=next;updateDirectionAfterSizeChange();render();});
+[s1WInput,s1HInput].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')el.blur();}));
+
+/* ---- 编辑器双字段弹窗（原生键盘） ---- */
+const vW=document.getElementById('vW'),vH=document.getElementById('vH');
+let dlgPrevW=50,dlgPrevH=70;
+function openDialog(f){
+  if(!isCont())return;
+  dlgPrevW=contW;dlgPrevH=contH;
+  vW.value=contW;vH.value=contH;
+  resetHints();
+  document.getElementById('okBtn').disabled=false;
+  validateDialogFields();
+  document.getElementById('dialogMask').classList.add('show');
+  setTimeout(()=>{const t=f==='w'?vW:vH;t.focus();t.select();},80);
+}
+function resetHints(){
+  const hw=document.getElementById('hintW'),hh=document.getElementById('hintH');
+  hw.className='d-hint';hw.textContent='范围 6–50mm（两寸机）';
+  hh.className='d-hint';hh.textContent='范围 20–300mm';
+}
+/* 获焦描边 */
+vW.addEventListener('focus',()=>{document.getElementById('fW').classList.add('focus');vW.select();});
+vH.addEventListener('focus',()=>{document.getElementById('fH').classList.add('focus');vH.select();});
+/* 输入校验：保留非法值并禁用确认 */
+vW.addEventListener('blur',()=>{
+  document.getElementById('fW').classList.remove('focus');
+  validateDialogFields();
+});
+vH.addEventListener('blur',()=>{
+  document.getElementById('fH').classList.remove('focus');
+  validateDialogFields();
+});
+[vW,vH].forEach(el=>{
+  el.addEventListener('input',validateDialogFields);
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!document.getElementById('okBtn').disabled)okDialog();});
+});
+function validateDialogFields(){
+  let valid=true;
+  [['w',vW,W_MIN,W_MAX],['h',vH,H_MIN,H_MAX]].forEach(([kind,el,min,max])=>{
+    const hint=document.getElementById(kind==='w'?'hintW':'hintH');
+    const name=kind==='w'?'标签宽':'标签高';
+    const raw=el.value.trim();
+    const v=Number(raw);
+    const bad=raw===''||!Number.isInteger(v)||v<min||v>max;
+    if(bad){
+      valid=false;
+      hint.className='d-hint err';
+      hint.textContent=raw===''?`请输入${name}`:(!Number.isInteger(v)?'请输入整数':(v<min?`${name}最小 ${min}mm`:`${name}最大 ${max}mm`));
+    }else{
+      hint.className='d-hint';
+      hint.textContent=kind==='w'?'范围 6–50mm（两寸机）':'范围 20–300mm';
+    }
+  });
+  document.getElementById('okBtn').disabled=!valid;
+  return valid;
+}
+function cancelDialog(){document.getElementById('dialogMask').classList.remove('show');}
+function okDialog(){
+  if(!validateDialogFields())return;
+  const nextW=Number(vW.value),nextH=Number(vH.value);
+  dirty=dirty||nextW!==contW||nextH!==contH;
+  contW=nextW;
+  contH=nextH;
+  updateDirectionAfterSizeChange();
+  document.getElementById('dialogMask').classList.remove('show');
+  render();
+}
+
+/* ================= 名称同步与编辑器轻交互 ================= */
+const labelNameInput=document.getElementById('labelNameInput');
+labelNameInput.addEventListener('input',()=>{
+  labelName=labelNameInput.value;
+  dirty=true;
+  document.getElementById('editorTitle').textContent=labelName.trim()||'未命名';
+});
+
+function canvasSnapshot(){return document.getElementById('sheetEl').innerHTML;}
+function pushCanvasHistory(){
+  canvasHistory.push(canvasSnapshot());
+  if(canvasHistory.length>20)canvasHistory.shift();
+  canvasFuture=[];
+}
+function addDemoContent(type){
+  if(type==='日期时间'||type==='序列号'){toast('该功能暂不可用');return;}
+  const sheet=document.getElementById('sheetEl');
+  pushCanvasHistory();
+  const labels={文本:'示例文本',图标:'★',边框:'▣',图片:'图片',线条:'━━━━',形状:'◇',二维码:'▦ QR',涂鸦:'〰〰',模板:'INKBIRD'};
+  sheet.innerHTML=`<span class="demo-content">${labels[type]||type}</span>`;
+  // 新增的打印元素不固定为横向，方向由 render() 中的全局打印方向控制。
+  render();
+  dirty=true;
+  refreshEditorActions();
+  toast(`已按${dir==='h'?'横向':'竖向'}添加${type}`);
+}
+function clearCanvas(){
+  const sheet=document.getElementById('sheetEl');
+  if(sheet.querySelector('.hint'))return;
+  if(!window.confirm('确定清空当前标签内容吗？'))return;
+  pushCanvasHistory();
+  sheet.innerHTML='<span class="hint">双击编辑</span>';
+  dirty=true;
+  refreshEditorActions();
+}
+function alignCanvas(){toast('示意内容已居中对齐');}
+function undoCanvas(){
+  if(!canvasHistory.length)return;
+  const sheet=document.getElementById('sheetEl');
+  canvasFuture.push(canvasSnapshot());
+  sheet.innerHTML=canvasHistory.pop();
+  render();
+  refreshEditorActions();
+}
+function redoCanvas(){
+  if(!canvasFuture.length)return;
+  const sheet=document.getElementById('sheetEl');
+  canvasHistory.push(canvasSnapshot());
+  sheet.innerHTML=canvasFuture.pop();
+  render();
+  refreshEditorActions();
+}
+function refreshEditorActions(){
+  const hasContent=!document.getElementById('sheetEl').querySelector('.hint');
+  document.getElementById('clearBtn').classList.toggle('off',!hasContent);
+  document.getElementById('alignBtn').classList.toggle('off',!hasContent);
+  document.getElementById('undoBtn').classList.toggle('off',canvasHistory.length===0);
+  document.getElementById('redoBtn').classList.toggle('off',canvasFuture.length===0);
+}
+
+/* ================= toast ================= */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toastEl');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+updateDirAuto(true);
+render();
+</script>
+</body>
+</html>
