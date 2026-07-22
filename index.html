@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>标签设置 · 卷纸预览微调版</title>
+<title>标签设置 · 预览物理尺寸固定版</title>
 <style>
   :root{
     --accent:#7C6CFF;
@@ -502,29 +502,28 @@ function render(){
   rect.classList.toggle('on',shape==='rect');
   circle.classList.toggle('on',shape==='circle');
   circle.classList.toggle('disabled',cont);
-  /* 设置页预览：高>宽时默认旋转为横向；宽>=高时按原始宽高；实际尺寸数据不互换 */
+  /* 设置页底部预览始终展示标签的原始物理尺寸。
+     这里不应用编辑器画布的默认旋转规则，也不跟随打印方向交换宽高：
+     顶部永远是原始宽度，右侧永远是原始高度；打印方向只改变 INKBIRD 文字方向。 */
   const pv=document.getElementById('s1Pv');
   const pw=cont?contW:gapSize.w, ph=cont?contH:gapSize.h;
   pv.classList.toggle('is-circle',shape==='circle'&&!cont);
   pv.classList.toggle('is-continuous',cont);
-  let dispW,dispH;
+  let dispW=pw, dispH=ph;
   if(shape==='circle'&&!cont){
     dispW=dispH=Math.min(pw,ph);
     const circlePx=Math.min(118,Math.max(72,dispW*2.2));
     pv.style.width=circlePx+'px';pv.style.height=circlePx+'px';pv.style.borderRadius='50%';
   }else{
-    dispW=pw;
-    dispH=ph;
-    // 设置页底部卷纸预览只反映标签尺寸的默认摆放规则。
-    // 用户切换打印方向时，宽高标注和标签外形保持不变，仅 INKBIRD 文字方向变化。
-    const previewRotated=!cont&&defaultCanvasRotation(pw,ph);
-    if(previewRotated){[dispW,dispH]=[dispH,dispW];}
-    pv.style.width=Math.min(148,Math.max(84,dispW*2.2))+'px';
-    pv.style.height=Math.min(132,Math.max(54,dispH*2.2))+'px';
+    // 等比缩放预览，不交换宽高，也不分别钳制宽高，避免比例失真。
+    const maxPreviewW=148, maxPreviewH=132;
+    const previewScale=Math.min(2.2,maxPreviewW/Math.max(dispW,1),maxPreviewH/Math.max(dispH,1));
+    pv.style.width=(dispW*previewScale)+'px';
+    pv.style.height=(dispH*previewScale)+'px';
     pv.style.borderRadius='6px';
   }
-  document.getElementById('s1PvW').textContent=dispW+'mm';
-  document.getElementById('s1PvH').textContent=cont?dispH+'mm（可变）':dispH+'mm';
+  document.getElementById('s1PvW').textContent=pw+'mm';
+  document.getElementById('s1PvH').textContent=cont?ph+'mm（可变）':ph+'mm';
   /* 打印方向：只更新按钮选中态与卷纸预览中的 INKBIRD 文字方向。 */
   document.getElementById('dirH').classList.toggle('on',dir==='h');
   document.getElementById('dirV').classList.toggle('on',dir==='v');
