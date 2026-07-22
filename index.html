@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>标签全链路 · 默认样式（间隙纸）+ 连续纸样式</title>
+<title>标签设置 · 卷纸预览微调版</title>
 <style>
   :root{
     --accent:#7C6CFF;
@@ -83,23 +83,51 @@
     border:1.5px solid var(--ink);border-radius:3px;padding:2px 6px}
   .seg.on .dir-abc{color:var(--accent);border-color:var(--accent)}
   .dir-abc.vert{writing-mode:vertical-rl;padding:5px 2px}
-  .dir-badge{font-size:10px;padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:500;vertical-align:1px}
-  .dir-badge.auto{color:#2E7D32;background:#EAF6EA}
-  .dir-badge.manual{color:var(--ink-2);background:var(--page)}
-  .dir-row-hint{font-size:11px;color:var(--ink-3);padding:0 0 14px;margin-top:-8px;line-height:1.6}
   .brand.vert{writing-mode:vertical-rl}
-  .s1-preview{background:#fff;border-radius:14px;padding:26px 16px 28px;
-    display:flex;flex-direction:column;align-items:center}
-  .pv-label{background:#fff;border:1.5px solid #d9d9de;border-radius:6px;
-    box-shadow:0 3px 10px rgba(0,0,0,.07);position:relative;
-    display:flex;align-items:center;justify-content:center;transition:all .2s}
-  .pv-label .brand{font-size:8px;letter-spacing:1px;color:var(--ink-3);font-weight:600}
-  .pv-w{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--ink-2)}
-  .pv-h{position:absolute;right:-30px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--ink-2);writing-mode:vertical-rl}
-  .pv-roll{position:absolute;right:-52px;bottom:-8px;width:26px;height:36px;
-    background:linear-gradient(180deg,#d7d7dc,#c2c2c8);border-radius:6px;
-    display:flex;align-items:center;justify-content:center}
-  .pv-roll::after{content:'';width:9px;height:9px;background:#f2f2f4;border-radius:50%;box-shadow:inset 0 0 0 2px #a8a8b0}
+  /* 设置页底部卷纸预览：保持原有结构，仅调整视觉表现 */
+  .s1-preview{background:#fff;border-radius:14px;padding:34px 16px 42px;min-height:190px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+  .pv-label{
+    --tail-h:42px;
+    --roll-w:40px;
+    background:linear-gradient(180deg,#fff 0%,#fff 74%,#fdfdfd 100%);
+    border:1px solid #ECECF0;border-radius:10px;
+    box-shadow:0 4px 14px rgba(20,20,28,.10);position:relative;
+    display:flex;align-items:center;justify-content:center;transition:width .2s,height .2s,border-radius .2s;
+    margin-bottom:var(--tail-h);isolation:isolate;
+  }
+  /* 下方连续纸带 */
+  .pv-label::before{
+    content:'';position:absolute;left:-1px;top:calc(100% - 2px);
+    width:calc(100% + 31px);height:var(--tail-h);
+    background:linear-gradient(180deg,#fff 0%,#FAFAFB 70%,#F2F2F4 100%);
+    border:1px solid #ECECF0;border-top-color:#F3F3F5;
+    border-radius:0 0 0 18px;
+    box-shadow:0 7px 12px rgba(20,20,28,.07);
+    z-index:-1;
+  }
+  /* 标签与纸带之间的分割线 */
+  .pv-label::after{
+    content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+    background:#F0F0F3;box-shadow:0 1px 0 rgba(255,255,255,.9);z-index:2;
+  }
+  .pv-label .brand{font-size:8px;letter-spacing:1px;color:#B3B3BA;font-weight:600;z-index:3}
+  .pv-w{position:absolute;top:-24px;left:50%;transform:translateX(-50%);
+    font-size:10px;color:var(--ink-2);white-space:nowrap;z-index:4}
+  .pv-h{position:absolute;right:-32px;top:50%;transform:translateY(-50%);
+    font-size:10px;color:var(--ink-2);writing-mode:vertical-rl;white-space:nowrap;z-index:4}
+  /* 右侧卷筒 */
+  .pv-roll{position:absolute;right:-43px;top:calc(100% + 1px);width:var(--roll-w);height:var(--tail-h);
+    background:linear-gradient(90deg,#F0F0F2 0%,#DADADF 58%,#C7C7CC 100%);
+    border:1px solid #D9D9DE;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 10px rgba(20,20,28,.12);z-index:3}
+  .pv-roll::before{content:'';position:absolute;left:2px;top:4px;bottom:4px;width:14px;
+    border-radius:50%;background:linear-gradient(90deg,#F7F7F8,#E3E3E7);opacity:.9}
+  .pv-roll::after{content:'';width:11px;height:17px;background:#9D9DA5;border-radius:50%;
+    box-shadow:inset 0 0 0 2px rgba(120,120,128,.14);position:relative;z-index:2}
+  .pv-label.is-circle::before{border-radius:0 0 0 20px}
+  .pv-label.is-continuous{--tail-h:52px}
 
   /* ---------- 下拉（设置页/编辑器共用样式） ---------- */
   .dropdown{
@@ -220,19 +248,6 @@
   .mask{position:absolute;inset:0;z-index:40;display:none}
   .mask.show{display:block}
 
-  /* ============ 说明面板 ============ */
-  .docs{width:340px;padding:26px 26px 30px;background:#fff;border-radius:20px;
-    box-shadow:0 12px 40px rgba(20,20,30,.08);font-size:13px;line-height:1.7;color:var(--ink-2)}
-  .docs h2{font-size:15px;color:var(--ink);margin-bottom:4px}
-  .docs .sub{font-size:12px;color:var(--ink-3);margin-bottom:16px}
-  .docs h3{font-size:12px;color:var(--accent);margin:16px 0 4px;font-weight:700}
-  .docs b{color:var(--ink)}
-  .docs code{background:var(--page);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--ink)}
-  .state-box{margin-top:18px;background:var(--page);border-radius:12px;padding:12px 14px;
-    font-size:12px;color:var(--ink);line-height:1.9}
-  .state-box b{color:var(--accent)}
-
-  @media (max-width:880px){body{flex-direction:column;align-items:center}.docs{width:375px}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -285,12 +300,11 @@
             <div class="seg" id="segCircle" onclick="setShape('circle')"><div class="shape-circle"></div></div>
           </div></div>
         <div class="seg-row">
-          <span class="field-label">打印方向<span class="dir-badge auto" id="dirBadge">自动</span></span>
+          <span class="field-label">打印方向</span>
           <div class="seg-group">
             <div class="seg on" id="dirH" onclick="setDir('h')"><span class="dir-abc">A B C</span></div>
             <div class="seg" id="dirV" onclick="setDir('v')"><span class="dir-abc vert">ABC</span></div>
           </div></div>
-        <div class="dir-row-hint" id="dirHint">宽 &gt; 高 → 默认横排；高 &gt; 宽 → 默认竖排；可随时手动切换</div>
       </div>
       <div class="s1-preview">
         <div class="pv-label" id="s1Pv">
@@ -384,41 +398,6 @@
   <div class="toast" id="toastEl"></div>
 </div>
 <style>input{user-select:text;-webkit-user-select:text}</style>
-
-<!-- ================= 说明面板 ================= -->
-<div class="docs">
-  <h2>全链路 · 原结构微调版</h2>
-  <div class="sub">保留现有字段、顺序、双页面结构和尺寸入口，仅优化状态与交互细节</div>
-
-  <h3>① 结构保持不变</h3>
-  继续使用：<b>标签名称、纸张类型、标签尺寸/宽高、标签形状、打印方向</b>，不拆字段，不增加新的设置层级。
-
-  <h3>② 状态微调</h3>
-  连续纸宽高会记住上一次设置，不再每次切换都重置；矩形与圆形分别记住上一次尺寸；修改尺寸时恢复该尺寸对应的自动打印方向，手动修改打印方向时画布方向同步切换。
-
-  <h3>③ 圆形尺寸修正</h3>
-  仍保留“标签尺寸”字段。切换圆形时自动匹配为正方形尺寸，下拉只显示等宽等高选项，避免出现“50×40mm但预览为40mm圆”的不一致。
-
-  <h3>④ 模板画布默认旋转规则</h3>
-  <b>高 &gt; 宽</b>：画布默认旋转 90° 并横向显示，显示宽 = 原高度、显示高 = 原宽；<br>
-  <b>宽 &gt; 高</b>：画布不旋转，按原始宽高显示；<br>
-  <b>宽 = 高</b>：无需判断，按原始尺寸显示。自动状态按以上规则展示；用户手动切换打印方向时，画布同步切换为相反的横竖显示状态，实际标签宽高数据始终不互换。
-
-  <h3>⑤ 细节体验</h3>
-  标签名称同步到编辑器标题；圆形切连续纸前二次确认；弹窗非法值保留并显示错误，确认按钮置灰；增大返回、关闭、旋转等点击区域。
-
-  <h3>⑥ 编辑器轻交互</h3>
-  保留原工具栏结构。点击文本、图片、二维码等工具可生成示意内容，并联动清空、对齐、撤销和恢复状态。
-
-  <div class="state-box" id="stateBox"></div>
-  <div style="margin-top:16px;padding:12px 14px;border-radius:12px;background:#F0EDFF;color:#4E43B8;font-size:12px;line-height:1.8">
-    <b>本版尺寸切换规则</b><br>
-    高&gt;宽：画布显示宽=原高度、显示高=原宽，打印方向自动为竖向；<br>
-    宽≥高：画布按原尺寸显示，打印方向自动为横向；<br>
-    编辑器中更换尺寸仅做宽高缩放，不播放90°旋转动画；<br>
-    手动将默认竖向改为横向时，画布同步由横向改为竖向；反向切换同理。
-  </div>
-</div>
 
 <script>
 /* ================= 数据 ================= */
@@ -526,39 +505,29 @@ function render(){
   /* 设置页预览：高>宽时默认旋转为横向；宽>=高时按原始宽高；实际尺寸数据不互换 */
   const pv=document.getElementById('s1Pv');
   const pw=cont?contW:gapSize.w, ph=cont?contH:gapSize.h;
+  pv.classList.toggle('is-circle',shape==='circle'&&!cont);
+  pv.classList.toggle('is-continuous',cont);
   let dispW,dispH;
   if(shape==='circle'&&!cont){
     dispW=dispH=Math.min(pw,ph);
-    pv.style.width=dispW*2+'px';pv.style.height=dispH*2+'px';pv.style.borderRadius='50%';
+    const circlePx=Math.min(118,Math.max(72,dispW*2.2));
+    pv.style.width=circlePx+'px';pv.style.height=circlePx+'px';pv.style.borderRadius='50%';
   }else{
     dispW=pw;
     dispH=ph;
-    if(!cont&&canvasRotated){[dispW,dispH]=[dispH,dispW];}
-    pv.style.width=Math.min(140,dispW*2)+'px';
-    pv.style.height=Math.min(170,dispH*2)+'px';
+    // 设置页底部卷纸预览只反映标签尺寸的默认摆放规则。
+    // 用户切换打印方向时，宽高标注和标签外形保持不变，仅 INKBIRD 文字方向变化。
+    const previewRotated=!cont&&defaultCanvasRotation(pw,ph);
+    if(previewRotated){[dispW,dispH]=[dispH,dispW];}
+    pv.style.width=Math.min(148,Math.max(84,dispW*2.2))+'px';
+    pv.style.height=Math.min(132,Math.max(54,dispH*2.2))+'px';
     pv.style.borderRadius='6px';
   }
   document.getElementById('s1PvW').textContent=dispW+'mm';
   document.getElementById('s1PvH').textContent=cont?dispH+'mm（可变）':dispH+'mm';
-  /* 打印方向：横排/竖排选中态 + 自动/手动徽标 + 提示文案 + 预览图文字方向联动 */
+  /* 打印方向：只更新按钮选中态与卷纸预览中的 INKBIRD 文字方向。 */
   document.getElementById('dirH').classList.toggle('on',dir==='h');
   document.getElementById('dirV').classList.toggle('on',dir==='v');
-  const dirBadge=document.getElementById('dirBadge');
-  const dirModeText=dirInherited?'继承':(dirAuto?'自动':'手动');
-  dirBadge.textContent=dirModeText;
-  dirBadge.classList.toggle('auto',dirAuto);
-  dirBadge.classList.toggle('manual',!dirAuto);
-  const dirRel=ph>pw?'高 > 宽':(pw>ph?'宽 > 高':'宽 = 高');
-  const canvasText=cont
-    ?'连续纸按原始宽高显示'
-    :(shape==='circle'
-      ?'圆形画布无需旋转'
-      :(canvasRotated
-        ?`画布横向显示（${ph}×${pw}mm）`
-        :`画布竖向/原始方向显示（${pw}×${ph}mm）`));
-  const dirReason=dirInherited?'继承创建方向':(dirAuto?'默认':'已手动改为');
-  document.getElementById('dirHint').textContent=
-    `当前 ${pw}×${ph}mm，${dirRel} → ${dirReason}${dir==='h'?'横排':'竖排'}；${canvasText}；编辑内容按${dir==='h'?'横向':'竖向'}初始化`;
   document.getElementById('pvBrand').classList.toggle('vert',dir==='v');
   /* 编辑器 */
   document.getElementById('wText').classList.toggle('show',cont);
@@ -600,13 +569,6 @@ function render(){
   rotateBtn.classList.toggle('active',rotated);
   rotateBtn.title=cont?'连续纸不支持方向切换':(shape==='circle'?'圆形标签无需切换画布方向':'切换打印方向并同步切换画布横竖');
   refreshEditorActions();
-  document.getElementById('stateBox').innerHTML=
-    `<b>实时状态（单一数据源）</b><br>
-     纸张类型：${paper}${cont?'':'（默认样式）'}<br>
-     尺寸：${cont?contW+'×'+contH+'mm（宽6–50 / 高20–300）':gapSize.w+'×'+gapSize.h+'mm（预设）'}<br>
-     形状：${shape==='rect'?'矩形':'圆形'}${cont?'（圆形置灰）':''}<br>
-     打印方向：${dir==='h'?'横排':'竖排'}（${dirInherited?'继承创建方向':(dirAuto?'自动':'手动')}）<br>
-     画布方向：${cont?'—（连续纸按原始尺寸）':(shape==='circle'?'—（圆形无需判断）':(canvasRotated?'横向显示':'竖向/原始方向显示'))}`;
 }
 
 /* ================= 纸张类型下拉 ================= */
